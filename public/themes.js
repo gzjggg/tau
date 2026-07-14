@@ -47,6 +47,18 @@ export function applyTheme(themeId) {
   if (!themes[themeId]) themeId = 'night';
   root.setAttribute('data-theme', themeId);
   localStorage.setItem('tau-theme', themeId);
+
+  // Transparent Pi mark: light glyph on dark themes, dark glyph on light themes
+  const dark = !!themes[themeId]?.dark;
+  const mark = dark ? '/icons/pi-mark-dark.png' : '/icons/pi-mark-light.png';
+  const mark192 = dark ? '/icons/pi-mark-dark-192.png' : '/icons/pi-mark-light-192.png';
+  document.querySelectorAll('img.brand-mark-icon, img.tau-icon.brand-mark-icon').forEach((img) => {
+    img.src = mark;
+    img.style.background = 'transparent';
+  });
+  const fav = document.querySelector('link[rel="icon"]');
+  if (fav) fav.href = mark192;
+  root.dataset.desktopChrome = dark ? 'dark' : 'light';
 }
 
 export function getCurrentTheme() {

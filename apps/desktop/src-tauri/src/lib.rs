@@ -1,6 +1,7 @@
 mod instance;
 
 use instance::{list_instances, loopback_url, port_healthy, TauInstance};
+use std::path::PathBuf;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 use url::Url;
 
@@ -33,9 +34,30 @@ fn navigate_main(app: &AppHandle, port: u16) -> Result<(), String> {
     WebviewWindowBuilder::new(app, "main", WebviewUrl::External(parsed))
         .title("Tau")
         .inner_size(1280.0, 860.0)
+        .decorations(false)
         .build()
         .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+fn resource_icon_path(app: &AppHandle, name: &str) -> Option<PathBuf> {
+    // Prefer resource dir (bundled), then dev path next to exe / CARGO_MANIFEST_DIR
+    if let Ok(dir) = app.path().resource_dir() {
+        let p = dir.join(name);
+        if p.exists() {
+            return Some(p);
+        }
+        let p2 = dir.join("icons").join(name);
+        if p2.exists() {
+            return Some(p2);
+        }
+    }
+    // Dev: apps/desktop/src-tauri/icons/<name>
+    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("icons").join(name);
+    if manifest.exists() {
+        return Some(manifest);
+    }
+    None
 }
 
 #[tauri::command]
@@ -54,6 +76,52 @@ fn open_instance(app: AppHandle, port: u16) -> Result<(), String> {
         ));
     }
     navigate_main(&app, port)
+}
+
+#[tauri::command]
+fn window_minimize(app: AppHandle) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window("main") {
+        win.minimize().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn window_toggle_maximize(app: AppHandle) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window("main") {
+        if win.is_maximized().unwrap_or(false) {
+            win.unmaximize().map_err(|e| e.to_string())?;
+        } else {
+            win.maximize().map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn window_close(app: AppHandle) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window("main") {
+        win.close().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Switch taskbar / window icon: dark chrome → light glyph; light chrome → black glyph.
+#[tauri::command]
+fn set_theme_chrome(app: AppHandle, dark: bool) -> Result<(), String> {
+    let name = if dark {
+        "icon-dark.png"
+    } else {
+        "icon-light.png"
+    };
+    let Some(path) = resource_icon_path(&app, name) else {
+        return Err(format!("icon not found: {name}"));
+    };
+    let icon = tauri::image::Image::from_path(&path).map_err(|e| e.to_string())?;
+    if let Some(win) = app.get_webview_window("main") {
+        win.set_icon(icon).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 fn focus_main(app: &AppHandle) {
@@ -89,9 +157,24 @@ pub fn run() {
                 focus_main(app);
             }
         }))
-        .invoke_handler(tauri::generate_handler![list_tau_instances, open_instance])
+        .invoke_handler(tauri::generate_handler![
+            list_tau_instances,
+            open_instance,
+            window_minimize,
+            window_toggle_maximize,
+            window_close,
+            set_theme_chrome
+        ])
         .setup(|app| {
             let handle = app.handle().clone();
+            // Default icon: dark-mode friendly light glyph until UI reports theme
+            if let Some(path) = resource_icon_path(&handle, "icon-dark.png") {
+                if let Ok(icon) = tauri::image::Image::from_path(&path) {
+                    if let Some(win) = handle.get_webview_window("main") {
+                        let _ = win.set_icon(icon);
+                    }
+                }
+            }
             let forced = port_from_args();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_millis(250));

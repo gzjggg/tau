@@ -1,13 +1,17 @@
 :root {
   color-scheme: dark;
   --bg: #131316;
+  --bg-solid: #131316;
   --panel: #1c1c21;
   --border: rgba(255, 255, 255, 0.08);
   --text: #f2f0ec;
+  --text-primary: #f2f0ec;
+  --text-secondary: rgba(242, 240, 236, 0.55);
   --muted: rgba(242, 240, 236, 0.55);
   --accent: #b87a5c;
   --accent-soft: rgba(184, 122, 92, 0.18);
   --ok: #6fbf73;
+  --bg-glass-hover: rgba(255, 255, 255, 0.06);
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
@@ -15,20 +19,91 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(184, 122, 92, 0.12), transparent 55%),
-    var(--bg);
+  background: var(--bg-solid);
   color: var(--text);
 }
 
-.shell {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 40px 24px 28px;
+body.tau-desktop {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
+}
+
+/* Titlebar — seamless with body */
+.desktop-titlebar {
+  display: flex;
+  flex: 0 0 auto;
+  height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 0 12px;
+  background: var(--bg-solid);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+  z-index: 100;
+}
+
+.desktop-titlebar-drag {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.desktop-titlebar-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.desktop-titlebar-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.desktop-titlebar-controls {
+  display: flex;
+  height: 100%;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.desktop-tb-btn {
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.desktop-tb-btn:hover {
+  background: var(--bg-glass-hover);
+  color: var(--text-primary);
+}
+
+.desktop-tb-close:hover {
+  background: #e81123;
+  color: #fff;
+}
+
+.shell {
+  flex: 1;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 28px 24px 28px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -47,16 +122,10 @@ body {
   gap: 14px;
 }
 
-.mark {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 28px;
-  font-weight: 600;
+.mark-img {
+  width: 40px;
+  height: 40px;
+  display: block;
 }
 
 h1 {
@@ -115,11 +184,6 @@ h1 {
   border-radius: 999px;
   background: rgba(111, 191, 115, 0.15);
   color: var(--ok);
-}
-
-.badge.warn {
-  background: rgba(184, 122, 92, 0.2);
-  color: var(--accent);
 }
 
 .meta {

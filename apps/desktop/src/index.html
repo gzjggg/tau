@@ -1,16 +1,29 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="tau-desktop" data-desktop-chrome="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#131316" />
     <title>Tau</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="tau-desktop">
+    <div class="desktop-titlebar" id="desktop-titlebar">
+      <div class="desktop-titlebar-drag" data-tauri-drag-region>
+        <img class="desktop-titlebar-icon" id="titlebar-icon" src="" alt="" width="16" height="16" />
+        <span class="desktop-titlebar-title">Tau</span>
+      </div>
+      <div class="desktop-titlebar-controls">
+        <button type="button" class="desktop-tb-btn" id="tb-min" aria-label="Minimize">─</button>
+        <button type="button" class="desktop-tb-btn" id="tb-max" aria-label="Maximize">□</button>
+        <button type="button" class="desktop-tb-btn desktop-tb-close" id="tb-close" aria-label="Close">✕</button>
+      </div>
+    </div>
+
     <main class="shell">
       <header class="header">
         <div class="brand">
-          <span class="mark">τ</span>
+          <img class="mark-img" id="brand-mark" alt="" width="40" height="40" />
           <div>
             <h1>Tau</h1>
             <p class="sub">Pi 会话桌面壳</p>
@@ -20,19 +33,17 @@
       </header>
 
       <section id="status" class="status">正在查找本机 Tau 实例…</section>
-
       <section id="list" class="list" hidden></section>
-
       <section id="empty" class="empty" hidden>
         <h2>没有运行中的 Pi / Tau</h2>
         <p>请在终端启动 Pi（已安装本产品仓的 Tau 扩展）。启动后点「刷新」，或重新打开本应用。</p>
         <pre class="cmd">pi</pre>
-        <p class="hint">桌面壳只连接 <code>127.0.0.1</code>，不会自动创建隐藏的 Pi 进程。</p>
+        <p class="hint">桌面壳只连接 <code>127.0.0.1</code>，不会自动创建隐藏的 Pi 进程。关窗不会退出 Pi。</p>
       </section>
 
       <footer class="footer">
         <span>关窗不会退出 Pi</span>
-        <span id="build">D1 loopback</span>
+        <span id="build">D1 · chrome</span>
       </footer>
     </main>
     <script type="module" src="main.js"></script>

@@ -20,7 +20,10 @@ import {
   setSessionCoverVisibility,
   sessionCoverState,
 } from './session-cover.js';
+import { installDesktopChrome, syncDesktopChrome } from './desktop-chrome.js';
 
+// Tau Desktop: custom titlebar + theme-aware window icon
+installDesktopChrome();
 
 // Initialize components
 const wsUrl = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host + '/ws';
@@ -2208,6 +2211,7 @@ function buildThemeGrid() {
     btn.innerHTML = `<span class="swatch-colors">${dots}</span>`;
     btn.addEventListener('click', () => {
       applyTheme(id);
+      syncDesktopChrome(id);
       themeGrid.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
       btn.classList.add('active');
     });
