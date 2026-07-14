@@ -1,4 +1,11 @@
-const { invoke } = window.__TAURI__.core;
+const invoke = (...args) => window.__TAURI__.core.invoke(...args);
+
+async function appWindow() {
+  const w = window.__TAURI__.window;
+  if (w.getCurrentWindow) return w.getCurrentWindow();
+  if (w.getCurrent) return w.getCurrent();
+  throw new Error("no window api");
+}
 
 const statusEl = document.getElementById("status");
 const listEl = document.getElementById("list");
@@ -7,45 +14,85 @@ const refreshBtn = document.getElementById("refresh-btn");
 const titleIcon = document.getElementById("titlebar-icon");
 const brandMark = document.getElementById("brand-mark");
 
-// Chooser uses dark chrome by default → light Pi glyph (no white plate)
-const ICON_DARK_CHROME = "data:image/svg+xml," + encodeURIComponent(
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 46"><g fill="#f2f0ec">${/* filled at runtime via PNG from resource */""}</g></svg>`
-);
+function osDark() {
+  return !!window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;
+}
 
-// Prefer filesystem icons served? Chooser is asset protocol — use invoke for theme only.
-// Embed tiny transparent PNG via canvas after load from relative path if we copy icons to src/
-// Fall back: draw via unicode τ is weak — copy icons into src/assets
-
-async function setChrome(dark) {
-  document.documentElement.dataset.desktopChrome = dark ? "dark" : "light";
+async function setChrome(darkOs) {
+  // dark OS → light glyph assets
+  document.documentElement.dataset.desktopChrome = darkOs ? "dark" : "light";
   document.querySelector('meta[name="theme-color"]')?.setAttribute(
     "content",
-    dark ? "#131316" : "#f4f1ec"
+    darkOs ? "#131316" : "#f4f1ec"
   );
-  // Asset-relative icons (copied next to styles)
-  const light = "./assets/pi-mark-light.png";
-  const darkI = "./assets/pi-mark-dark.png";
-  const src = dark ? darkI : light;
+  const src = darkOs ? "./assets/pi-mark-dark.png" : "./assets/pi-mark-light.png";
   if (titleIcon) titleIcon.src = src;
   if (brandMark) brandMark.src = src;
   try {
-    await invoke("set_theme_chrome", { dark });
-  } catch (_) {}
+    await invoke("set_theme_chrome", { dark: darkOs });
+  } catch (e) {
+    console.warn("set_theme_chrome", e);
+  }
 }
 
-// Prefer OS preference for chooser page
-const prefersLight = window.matchMedia?.("(prefers-color-scheme: light)")?.matches;
-setChrome(!prefersLight);
+setChrome(osDark());
+try {
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+    setChrome(e.matches);
+  });
+} catch { /* ignore */ }
 
-document.getElementById("tb-min")?.addEventListener("click", () => {
-  invoke("window_minimize").catch(() => {});
-});
-document.getElementById("tb-max")?.addEventListener("click", () => {
-  invoke("window_toggle_maximize").catch(() => {});
-});
-document.getElementById("tb-close")?.addEventListener("click", () => {
-  invoke("window_close").catch(() => {});
-});
+async function winMin() {
+  try {
+    await (await appWindow()).minimize();
+  } catch (e1) {
+    try {
+      await invoke("window_minimize");
+    } catch (e2) {
+      console.warn(e1, e2);
+    }
+  }
+}
+async function winMax() {
+  try {
+    const win = await appWindow();
+    if (win.toggleMaximize) await win.toggleMaximize();
+    else if (await win.isMaximized()) await win.unmaximize();
+    else await win.maximize();
+  } catch (e1) {
+    try {
+      await invoke("window_toggle_maximize");
+    } catch (e2) {
+      console.warn(e1, e2);
+    }
+  }
+}
+async function winClose() {
+  try {
+    await (await appWindow()).close();
+  } catch (e1) {
+    try {
+      await invoke("window_close");
+    } catch (e2) {
+      console.warn(e1, e2);
+    }
+  }
+}
+
+function bindBtn(id, fn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.webkitAppRegion = "no-drag";
+  el.addEventListener("mousedown", (e) => e.stopPropagation());
+  el.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fn();
+  });
+}
+bindBtn("tb-min", () => void winMin());
+bindBtn("tb-max", () => void winMax());
+bindBtn("tb-close", () => void winClose());
 
 function shortPath(p) {
   if (!p) return "(unknown cwd)";
@@ -117,6 +164,3 @@ async function refresh() {
 refreshBtn.addEventListener("click", refresh);
 refresh();
 setInterval(refresh, 4000);
-
-// silence unused
-void ICON_DARK_CHROME;

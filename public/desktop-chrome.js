@@ -1,28 +1,103 @@
 /**
- * Desktop chrome — custom titlebar + theme-aware window icon when running inside Tau Desktop (Tauri).
- * No-ops in the regular browser.
+ * Desktop chrome — custom titlebar + theme-aware window icon (Tau Desktop / Tauri).
+ * Window controls use official @tauri-apps window API (ACL-safe).
  */
 
 import { themes, getCurrentTheme } from './themes.js';
 
 let installed = false;
-let lastDark = null;
+let lastTaskbarLight = null; // true = light glyph (for dark OS taskbar)
 
 export function isTauDesktop() {
   try {
-    return !!(window.__TAURI__ && window.__TAURI__.core);
+    return !!(window.__TAURI__ && (window.__TAURI__.core || window.__TAURI__.window));
   } catch {
     return false;
   }
 }
 
-function invoke(cmd, args) {
-  return window.__TAURI__.core.invoke(cmd, args);
+function coreInvoke(cmd, args) {
+  const core = window.__TAURI__?.core;
+  if (!core?.invoke) return Promise.reject(new Error('no tauri core'));
+  return core.invoke(cmd, args);
+}
+
+async function appWindow() {
+  const w = window.__TAURI__?.window;
+  if (w?.getCurrentWindow) return w.getCurrentWindow();
+  if (w?.getCurrent) return w.getCurrent();
+  throw new Error('no tauri window API');
 }
 
 function isDarkTheme(themeId = getCurrentTheme()) {
   const t = themes[themeId];
   return t ? !!t.dark : true;
+}
+
+/** Windows taskbar is usually dark in dark mode — need light glyph then. */
+function osPrefersDark() {
+  try {
+    return !!window.matchMedia?.('(prefers-color-scheme: dark)')?.matches;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Taskbar icon: follow OS chrome, not app UI theme.
+ * dark OS taskbar → light Pi; light OS taskbar → black Pi.
+ */
+function taskbarWantsLightGlyph() {
+  return osPrefersDark();
+}
+
+async function windowMinimize() {
+  try {
+    await (await appWindow()).minimize();
+    return;
+  } catch (e) {
+    console.warn('[desktop-chrome] minimize via window API failed', e);
+  }
+  try {
+    await coreInvoke('window_minimize');
+  } catch (e) {
+    console.warn('[desktop-chrome] minimize invoke failed', e);
+  }
+}
+
+async function windowToggleMaximize() {
+  try {
+    const win = await appWindow();
+    if (typeof win.toggleMaximize === 'function') {
+      await win.toggleMaximize();
+      return;
+    }
+    const max = await win.isMaximized();
+    if (max) await win.unmaximize();
+    else await win.maximize();
+    return;
+  } catch (e) {
+    console.warn('[desktop-chrome] maximize via window API failed', e);
+  }
+  try {
+    await coreInvoke('window_toggle_maximize');
+  } catch (e) {
+    console.warn('[desktop-chrome] maximize invoke failed', e);
+  }
+}
+
+async function windowClose() {
+  try {
+    await (await appWindow()).close();
+    return;
+  } catch (e) {
+    console.warn('[desktop-chrome] close via window API failed', e);
+  }
+  try {
+    await coreInvoke('window_close');
+  } catch (e) {
+    console.warn('[desktop-chrome] close invoke failed', e);
+  }
 }
 
 function ensureTitlebar() {
@@ -33,7 +108,7 @@ function ensureTitlebar() {
   bar.className = 'desktop-titlebar';
   bar.innerHTML = `
     <div class="desktop-titlebar-drag" data-tauri-drag-region>
-      <img class="desktop-titlebar-icon" id="desktop-titlebar-icon" alt="" width="16" height="16" />
+      <img class="desktop-titlebar-icon" id="desktop-titlebar-icon" alt="" width="16" height="16" draggable="false" />
       <span class="desktop-titlebar-title">Tau</span>
     </div>
     <div class="desktop-titlebar-controls">
@@ -52,26 +127,44 @@ function ensureTitlebar() {
   document.documentElement.classList.add('tau-desktop');
   document.body.classList.add('tau-desktop');
 
-  document.getElementById('desktop-tb-min')?.addEventListener('click', () => {
-    invoke('window_minimize').catch(() => {});
-  });
-  document.getElementById('desktop-tb-max')?.addEventListener('click', () => {
-    invoke('window_toggle_maximize').catch(() => {});
-  });
-  document.getElementById('desktop-tb-close')?.addEventListener('click', () => {
-    invoke('window_close').catch(() => {});
+  const controls = bar.querySelector('.desktop-titlebar-controls');
+  // Ensure controls never become drag regions
+  controls?.style.setProperty('-webkit-app-region', 'no-drag');
+  controls?.style.setProperty('app-region', 'no-drag');
+
+  const bind = (id, fn) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+    });
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      fn();
+    });
+  };
+  bind('desktop-tb-min', () => { void windowMinimize(); });
+  bind('desktop-tb-max', () => { void windowToggleMaximize(); });
+  bind('desktop-tb-close', () => { void windowClose(); });
+
+  // Double-click title to maximize (Windows habit)
+  bar.querySelector('.desktop-titlebar-drag')?.addEventListener('dblclick', (e) => {
+    if (e.target.closest('button')) return;
+    void windowToggleMaximize();
   });
 }
 
-function markUrl(dark, size) {
+function markUrl(darkUi, size) {
+  // darkUi true → light-colored Pi mark asset (*-dark.png naming = glyph for dark backgrounds)
   if (size === 192) {
-    return dark ? '/icons/pi-mark-dark-192.png' : '/icons/pi-mark-light-192.png';
+    return darkUi ? '/icons/pi-mark-dark-192.png' : '/icons/pi-mark-light-192.png';
   }
-  return dark ? '/icons/pi-mark-dark.png' : '/icons/pi-mark-light.png';
+  return darkUi ? '/icons/pi-mark-dark.png' : '/icons/pi-mark-light.png';
 }
 
-function updateFavicon(dark) {
-  const href = markUrl(dark, 192);
+function updateInAppMarks(darkUi) {
+  const href = markUrl(darkUi, 192);
   let link = document.querySelector('link[rel="icon"]');
   if (!link) {
     link = document.createElement('link');
@@ -81,29 +174,39 @@ function updateFavicon(dark) {
   }
   link.href = href;
 
-  const small = markUrl(dark, 32);
+  const small = markUrl(darkUi, 32);
   const tbIcon = document.getElementById('desktop-titlebar-icon');
   if (tbIcon) tbIcon.src = small;
 
-  // Sidebar / welcome brand: transparent glyph only
   document.querySelectorAll('img.brand-mark-icon, img.tau-icon.brand-mark-icon').forEach((img) => {
     img.src = small;
     img.style.background = 'transparent';
   });
 }
 
+async function syncTaskbarIcon() {
+  const lightGlyph = taskbarWantsLightGlyph();
+  if (lastTaskbarLight === lightGlyph) return;
+  lastTaskbarLight = lightGlyph;
+  // dark=true in Rust means "use light glyph" (for dark chrome/taskbar)
+  try {
+    await coreInvoke('set_theme_chrome', { dark: lightGlyph });
+  } catch (e) {
+    console.warn('[desktop-chrome] set_theme_chrome failed', e);
+  }
+}
+
 /**
- * Sync titlebar surface + window/taskbar icon with current theme.
+ * Sync titlebar surface with app theme; taskbar icon with OS scheme.
  */
 export async function syncDesktopChrome(themeId = getCurrentTheme()) {
   if (!isTauDesktop()) return;
   ensureTitlebar();
-  const dark = isDarkTheme(themeId);
-  document.documentElement.dataset.desktopChrome = dark ? 'dark' : 'light';
+  const darkUi = isDarkTheme(themeId);
+  document.documentElement.dataset.desktopChrome = darkUi ? 'dark' : 'light';
 
-  updateFavicon(dark);
+  updateInAppMarks(darkUi);
 
-  // theme-color meta for OS chrome hints
   let meta = document.querySelector('meta[name="theme-color"]');
   if (!meta) {
     meta = document.createElement('meta');
@@ -111,28 +214,27 @@ export async function syncDesktopChrome(themeId = getCurrentTheme()) {
     document.head.appendChild(meta);
   }
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg-solid').trim()
-    || (dark ? '#212121' : '#f4f1ec');
+    || (darkUi ? '#212121' : '#f4f1ec');
   meta.content = bg;
 
-  if (lastDark === dark) return;
-  lastDark = dark;
-  try {
-    await invoke('set_theme_chrome', { dark });
-  } catch (e) {
-    // Older desktop build without command — ignore
-    console.debug('[desktop-chrome]', e);
-  }
+  await syncTaskbarIcon();
 }
 
 export function installDesktopChrome() {
   if (!isTauDesktop() || installed) return;
   installed = true;
   ensureTitlebar();
-  syncDesktopChrome();
+  void syncDesktopChrome();
 
-  // Observe theme attribute changes (applyTheme sets data-theme)
   const obs = new MutationObserver(() => {
-    syncDesktopChrome(document.documentElement.getAttribute('data-theme') || getCurrentTheme());
+    void syncDesktopChrome(document.documentElement.getAttribute('data-theme') || getCurrentTheme());
   });
   obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  try {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      lastTaskbarLight = null;
+      void syncTaskbarIcon();
+    });
+  } catch { /* ignore */ }
 }

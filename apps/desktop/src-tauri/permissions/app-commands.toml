@@ -1,0 +1,11 @@
+[[permission]]
+identifier = "allow-app-commands"
+description = "Allow Tau desktop shell commands (instances, chrome, window helpers)"
+commands.allow = [
+  "list_tau_instances",
+  "open_instance",
+  "window_minimize",
+  "window_toggle_maximize",
+  "window_close",
+  "set_theme_chrome"
+]

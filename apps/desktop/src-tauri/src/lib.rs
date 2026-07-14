@@ -1,11 +1,15 @@
 mod instance;
 
 use instance::{list_instances, loopback_url, port_healthy, TauInstance};
-use std::path::PathBuf;
+use std::sync::OnceLock;
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 use url::Url;
 
-/// Parse `--port N` or `--port=N` from process args (used by Tau extension launcher).
+/// Baked-in icons so taskbar switch works even if resource_dir paths differ.
+/// icon-dark.png = light glyph (for dark taskbar); icon-light.png = black glyph.
+static ICON_LIGHT_GLYPH: &[u8] = include_bytes!("../icons/icon-dark.png");
+static ICON_DARK_GLYPH: &[u8] = include_bytes!("../icons/icon-light.png");
+
 fn port_from_args() -> Option<u16> {
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
@@ -40,24 +44,84 @@ fn navigate_main(app: &AppHandle, port: u16) -> Result<(), String> {
     Ok(())
 }
 
-fn resource_icon_path(app: &AppHandle, name: &str) -> Option<PathBuf> {
-    // Prefer resource dir (bundled), then dev path next to exe / CARGO_MANIFEST_DIR
-    if let Ok(dir) = app.path().resource_dir() {
-        let p = dir.join(name);
-        if p.exists() {
-            return Some(p);
-        }
-        let p2 = dir.join("icons").join(name);
-        if p2.exists() {
-            return Some(p2);
-        }
+fn image_from_bytes(bytes: &[u8]) -> Result<tauri::image::Image<'static>, String> {
+    tauri::image::Image::from_bytes(bytes)
+        .map(|i| i.to_owned())
+        .map_err(|e| e.to_string())
+}
+
+fn apply_window_icon(app: &AppHandle, light_glyph: bool) -> Result<(), String> {
+    let bytes = if light_glyph {
+        ICON_LIGHT_GLYPH
+    } else {
+        ICON_DARK_GLYPH
+    };
+    let icon = image_from_bytes(bytes)?;
+    if let Some(win) = app.get_webview_window("main") {
+        win.set_icon(icon).map_err(|e| e.to_string())?;
     }
-    // Dev: apps/desktop/src-tauri/icons/<name>
-    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("icons").join(name);
-    if manifest.exists() {
-        return Some(manifest);
+    Ok(())
+}
+
+/// Windows: AppsUseLightTheme == 0 ⇒ dark mode (dark taskbar → need light glyph).
+#[cfg(windows)]
+fn os_wants_light_glyph() -> bool {
+    use std::ptr::null_mut;
+    // Prefer registry; fall back to true (dark-taskbar-safe)
+    type HKEY = *mut std::ffi::c_void;
+    const HKEY_CURRENT_USER: HKEY = 0x80000001u32 as HKEY;
+    const KEY_READ: u32 = 0x20019;
+    extern "system" {
+        fn RegOpenKeyExW(
+            hkey: HKEY,
+            sub: *const u16,
+            opt: u32,
+            sam: u32,
+            result: *mut HKEY,
+        ) -> i32;
+        fn RegQueryValueExW(
+            hkey: HKEY,
+            name: *const u16,
+            reserved: *mut u32,
+            ty: *mut u32,
+            data: *mut u8,
+            cb: *mut u32,
+        ) -> i32;
+        fn RegCloseKey(hkey: HKEY) -> i32;
     }
-    None
+    fn wide(s: &str) -> Vec<u16> {
+        s.encode_utf16().chain(std::iter::once(0)).collect()
+    }
+    unsafe {
+        let mut hkey: HKEY = null_mut();
+        let sub = wide(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
+        if RegOpenKeyExW(HKEY_CURRENT_USER, sub.as_ptr(), 0, KEY_READ, &mut hkey) != 0 {
+            return true;
+        }
+        let name = wide("SystemUsesLightTheme");
+        let mut ty: u32 = 0;
+        let mut data: u32 = 1;
+        let mut cb: u32 = 4;
+        let ok = RegQueryValueExW(
+            hkey,
+            name.as_ptr(),
+            null_mut(),
+            &mut ty,
+            &mut data as *mut u32 as *mut u8,
+            &mut cb,
+        );
+        RegCloseKey(hkey);
+        if ok != 0 {
+            return true;
+        }
+        // 0 = dark system chrome → light glyph
+        data == 0
+    }
+}
+
+#[cfg(not(windows))]
+fn os_wants_light_glyph() -> bool {
+    true
 }
 
 #[tauri::command]
@@ -80,48 +144,37 @@ fn open_instance(app: AppHandle, port: u16) -> Result<(), String> {
 
 #[tauri::command]
 fn window_minimize(app: AppHandle) -> Result<(), String> {
-    if let Some(win) = app.get_webview_window("main") {
-        win.minimize().map_err(|e| e.to_string())?;
-    }
-    Ok(())
+    let win = app
+        .get_webview_window("main")
+        .ok_or_else(|| "no main window".to_string())?;
+    win.minimize().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 fn window_toggle_maximize(app: AppHandle) -> Result<(), String> {
-    if let Some(win) = app.get_webview_window("main") {
-        if win.is_maximized().unwrap_or(false) {
-            win.unmaximize().map_err(|e| e.to_string())?;
-        } else {
-            win.maximize().map_err(|e| e.to_string())?;
-        }
+    let win = app
+        .get_webview_window("main")
+        .ok_or_else(|| "no main window".to_string())?;
+    if win.is_maximized().unwrap_or(false) {
+        win.unmaximize().map_err(|e| e.to_string())
+    } else {
+        win.maximize().map_err(|e| e.to_string())
     }
-    Ok(())
 }
 
 #[tauri::command]
 fn window_close(app: AppHandle) -> Result<(), String> {
-    if let Some(win) = app.get_webview_window("main") {
-        win.close().map_err(|e| e.to_string())?;
-    }
-    Ok(())
+    let win = app
+        .get_webview_window("main")
+        .ok_or_else(|| "no main window".to_string())?;
+    win.close().map_err(|e| e.to_string())
 }
 
-/// Switch taskbar / window icon: dark chrome → light glyph; light chrome → black glyph.
+/// `dark: true` ⇒ light-colored glyph (for dark taskbar / dark chrome).
+/// `dark: false` ⇒ black glyph (for light taskbar).
 #[tauri::command]
 fn set_theme_chrome(app: AppHandle, dark: bool) -> Result<(), String> {
-    let name = if dark {
-        "icon-dark.png"
-    } else {
-        "icon-light.png"
-    };
-    let Some(path) = resource_icon_path(&app, name) else {
-        return Err(format!("icon not found: {name}"));
-    };
-    let icon = tauri::image::Image::from_path(&path).map_err(|e| e.to_string())?;
-    if let Some(win) = app.get_webview_window("main") {
-        win.set_icon(icon).map_err(|e| e.to_string())?;
-    }
-    Ok(())
+    apply_window_icon(&app, dark)
 }
 
 fn focus_main(app: &AppHandle) {
@@ -131,6 +184,8 @@ fn focus_main(app: &AppHandle) {
         let _ = win.set_focus();
     }
 }
+
+static INIT_ICON: OnceLock<()> = OnceLock::new();
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -167,17 +222,16 @@ pub fn run() {
         ])
         .setup(|app| {
             let handle = app.handle().clone();
-            // Default icon: dark-mode friendly light glyph until UI reports theme
-            if let Some(path) = resource_icon_path(&handle, "icon-dark.png") {
-                if let Ok(icon) = tauri::image::Image::from_path(&path) {
-                    if let Some(win) = handle.get_webview_window("main") {
-                        let _ = win.set_icon(icon);
-                    }
-                }
-            }
+            // Default: OS dark taskbar → light glyph (fixes invisible black icon)
+            let light = os_wants_light_glyph();
+            let _ = apply_window_icon(&handle, light);
+            INIT_ICON.get_or_init(|| ());
+
             let forced = port_from_args();
             std::thread::spawn(move || {
                 std::thread::sleep(std::time::Duration::from_millis(250));
+                // Re-apply icon after window fully ready
+                let _ = apply_window_icon(&handle, os_wants_light_glyph());
                 if let Some(port) = forced {
                     let _ = navigate_main(&handle, port);
                     return;

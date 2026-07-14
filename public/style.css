@@ -460,8 +460,12 @@ html.tau-desktop .desktop-titlebar {
   display: flex;
   align-items: stretch;
   height: 100%;
-  -webkit-app-region: no-drag;
-  app-region: no-drag;
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 2;
+  -webkit-app-region: no-drag !important;
+  app-region: no-drag !important;
+  pointer-events: auto;
 }
 
 .desktop-tb-btn {
@@ -474,6 +478,11 @@ html.tau-desktop .desktop-titlebar {
   display: grid;
   place-items: center;
   transition: background 0.12s var(--ease), color 0.12s var(--ease);
+  -webkit-app-region: no-drag !important;
+  app-region: no-drag !important;
+  pointer-events: auto;
+  position: relative;
+  z-index: 3;
 }
 
 .desktop-tb-btn:hover {
