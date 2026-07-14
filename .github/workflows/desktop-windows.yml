@@ -1,0 +1,50 @@
+# Build Tau Desktop NSIS installer (product repo only — not used for tau-pr).
+name: Desktop Windows
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "desktop-v*"
+    paths:
+      - "apps/desktop/**"
+      - "public/**"
+      - ".github/workflows/desktop-windows.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend deps (desktop)
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Build NSIS installer
+        working-directory: apps/desktop
+        run: npm run package
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tau-desktop-windows-nsis
+          path: |
+            dist/desktop/*
+            apps/desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error

@@ -95,6 +95,8 @@ npm run build
 
 桌面化仅维护在产品仓 `gzjggg/tau`，**不**同步到 `tau-pr` / 上游。
 
+**安装包（D3）：** `cd apps/desktop && npm run package` → `dist/desktop/Tau_*_x64-setup.exe`（未签名，个人使用）。详见 [docs/desktop-install.md](./docs/desktop-install.md)。
+
 ## 本分支亮点
 
 ### 斜杠命令与命令中心

@@ -95,6 +95,8 @@ Then start Pi as usual; the extension launches `tau-desktop --port <port>` when 
 
 Desktopization is **product-only** (`gzjggg/tau`); it is **not** mirrored to `tau-pr` / upstream.
 
+**Installer (D3):** `cd apps/desktop && npm run package` → `dist/desktop/Tau_*_x64-setup.exe` (unsigned). See [docs/desktop-install.md](./docs/desktop-install.md).
+
 ## Fork highlights
 
 ### Slash commands & Command Center

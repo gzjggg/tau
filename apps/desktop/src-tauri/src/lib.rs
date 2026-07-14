@@ -192,8 +192,27 @@ fn focus_main(app: &AppHandle) {
     }
 }
 
+/// Windows taskbar identity (grouping / pinning) — matches NSIS product install.
+#[cfg(windows)]
+fn set_app_user_model_id() {
+    // SetCurrentProcessExplicitAppUserModelID("com.gzjggg.tau")
+    type HRESULT = i32;
+    extern "system" {
+        fn SetCurrentProcessExplicitAppUserModelID(app_id: *const u16) -> HRESULT;
+    }
+    let id: Vec<u16> = "com.gzjggg.tau\0".encode_utf16().collect();
+    unsafe {
+        let _ = SetCurrentProcessExplicitAppUserModelID(id.as_ptr());
+    }
+}
+
+#[cfg(not(windows))]
+fn set_app_user_model_id() {}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    set_app_user_model_id();
+
     // Resolve port before the webview boots so get_active_port works on first paint
     if let Some(port) = port_from_args() {
         if port_healthy(port) {

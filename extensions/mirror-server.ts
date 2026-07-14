@@ -186,6 +186,7 @@ function findDesktopExecutable(): string | null {
   const extDir = typeof __dirname !== "undefined" ? __dirname : path.dirname(process.argv[1] || "");
   const pkgRoot = path.resolve(extDir, "..");
   const home = os.homedir() || process.env.USERPROFILE || "";
+  const localApp = process.env.LOCALAPPDATA || path.join(home, "AppData", "Local");
   const candidates = [
     TAU_SETTINGS.desktopPath,
     process.env.TAU_DESKTOP_PATH,
@@ -194,9 +195,12 @@ function findDesktopExecutable(): string | null {
     path.join(pkgRoot, "apps", "desktop", "src-tauri", "target", "debug", "tau-desktop.exe"),
     path.join(pkgRoot, "apps", "desktop", "src-tauri", "target", "release", "tau-desktop"),
     path.join(pkgRoot, "apps", "desktop", "src-tauri", "target", "debug", "tau-desktop"),
-    // Common user install locations (Windows)
+    // NSIS currentUser install (Tauri default: %LOCALAPPDATA%\Programs\<product>)
+    path.join(localApp, "Programs", "Tau", "tau-desktop.exe"),
+    path.join(localApp, "Programs", "Tau", "Tau.exe"),
+    path.join(localApp, "Tau", "tau-desktop.exe"),
+    // Start Menu shortcut target sometimes lives under Programs only
     path.join(home, "AppData", "Local", "Programs", "Tau", "tau-desktop.exe"),
-    path.join(home, "AppData", "Local", "Tau", "tau-desktop.exe"),
   ].filter((p): p is string => typeof p === "string" && p.length > 0);
 
   for (const c of candidates) {

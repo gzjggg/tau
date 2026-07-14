@@ -1,13 +1,14 @@
 {
   "name": "tau-desktop",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Tau desktop shell — bundled public UI + loopback Tau API (product repo only)",
   "type": "module",
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",
-    "build": "tauri build"
+    "build": "tauri build",
+    "package": "tauri build && node ./scripts/copy-installer.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"

@@ -2,78 +2,83 @@
 
 Native window for the Tau web UI (Tauri 2 + WebView2 on Windows).
 
-**Product repo only** ([gzjggg/tau](https://github.com/gzjggg/tau)) — desktop changes are **not** pushed to `tau-pr` / upstream.
+**Product repo only** ([gzjggg/tau](https://github.com/gzjggg/tau)) — desktop work is **not** pushed to `tau-pr` / upstream.
 
-## Architecture (D2)
+## Phases
+
+| Phase | Status |
+|-------|--------|
+| D1 Independent window + launcher | Done |
+| D2 Bundled `public/` + loopback API | Done |
+| **D3 NSIS installer + docs/CI** | **Done** (unsigned personal release) |
+
+## Install (D3)
+
+1. Build: `cd apps/desktop && npm run package`
+2. Run `dist/desktop/Tau_*_x64-setup.exe` (or under `src-tauri/target/release/bundle/nsis/`)
+3. Installs for **current user** (no admin) under `%LOCALAPPDATA%\Programs\Tau\`
+4. Start Menu folder: **Tau**
+5. Start Pi with this product package; default `client: "desktop"` auto-opens the app
+
+Full notes: [docs/desktop-install.md](../../docs/desktop-install.md)
+
+### Uninstall
+
+Windows Settings → Apps → **Tau**, or NSIS uninstaller.
+
+### Signing
+
+Installers are **unsigned**. SmartScreen may warn until you code-sign.
+
+## Architecture
 
 | Layer | Role |
 |-------|------|
-| Bundled `public/` | UI assets inside the desktop app (`frontendDist`) |
+| Bundled `public/` | Same UI as browser |
 | Pi + Tau extension | HTTP/WS on `127.0.0.1:<port>` |
-| Desktop shell | Discovers port via `~/.pi/tau-instances`, custom titlebar, taskbar icon |
+| Desktop shell | Instance discovery, titlebar, taskbar icon, single-instance |
 
-The window loads the **same** `public/` UI as the browser. API/WebSocket traffic goes to loopback using `window.__TAU_ENDPOINT__` / `get_active_port` (see `public/tau-endpoint.js`).
-
-Closing the desktop window **does not** exit Pi.
-
-## Prerequisites
-
-- Rust (rustup) + MSVC build tools (Windows)
-- WebView2 Runtime (Windows 11 usually included)
-- Node.js 18+
+Closing the window does **not** exit Pi.
 
 ## Build
 
 ```bash
 cd apps/desktop
 npm install
-npm run build
+npm run package
 ```
 
-Outputs:
+| Output | Path |
+|--------|------|
+| Binary | `src-tauri/target/release/tau-desktop.exe` |
+| NSIS | `src-tauri/target/release/bundle/nsis/Tau_*_x64-setup.exe` |
+| Copy + manifest | `dist/desktop/` |
 
-- Exe: `src-tauri/target/release/tau-desktop.exe`
-- Installer (NSIS): `src-tauri/target/release/bundle/nsis/Tau_*_x64-setup.exe`
+Requirements: Windows x64, Rust, MSVC, Node 18+.
 
-Dev:
-
-```bash
-npm run dev
-```
-
-## Launch from Pi
-
-Default `client: "desktop"`:
-
-1. Extension finds `tau-desktop.exe`
-2. Runs `tau-desktop --port <port>`
-3. If missing → browser fallback (`desktopFallback: "browser"`)
-
-Search paths: `TAU_DESKTOP_PATH` → `settings.tau.desktopPath` → package `apps/desktop/.../release/tau-desktop.exe` → `%LOCALAPPDATA%\Programs\Tau\`.
+## Configure Pi
 
 ```json
 {
   "tau": {
     "client": "desktop",
     "desktopFallback": "browser",
-    "desktopPath": "C:/Users/you/projects/tau/apps/desktop/src-tauri/target/release/tau-desktop.exe"
+    "desktopPath": "%LOCALAPPDATA%/Programs/Tau/tau-desktop.exe"
   }
 }
 ```
 
-- Browser only: `"client": "browser"` or `TAU_CLIENT=browser`
-- No auto-open: `"autoOpenBrowser": false` or `TAU_AUTO_OPEN=0`
+(`desktopPath` optional if the default install location is used.)
+
+- Browser only: `TAU_CLIENT=browser`
+- No auto-open: `TAU_AUTO_OPEN=0`
+
+## CI
+
+`.github/workflows/desktop-windows.yml` — tag `desktop-v*` or manual dispatch builds the NSIS artifact.
 
 ## Chrome notes
 
-- Frameless window + themed titlebar (follows Tau UI theme)
-- Taskbar Pi glyph follows **Windows system** light/dark (not app theme)
-- Maximize button toggles to dual rounded restore glyph
-
-## Phases
-
-| Phase | Status |
-|-------|--------|
-| D1 loopback shell + launcher | Done |
-| D2 bundled `public/` + endpoint | Done (this tree) |
-| D3 signed store distribution | Optional later |
+- Frameless window + themed titlebar
+- Taskbar glyph follows **Windows system** light/dark
+- Maximize ↔ dual rounded restore icon
