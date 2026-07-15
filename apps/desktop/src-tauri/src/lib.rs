@@ -120,7 +120,7 @@ fn connect_port(app: &AppHandle, port: u16) -> Result<(), String> {
     }
     if !port_healthy(port) {
         return Err(format!(
-            "No healthy Tau at 127.0.0.1:{port}. Start Pi with Tau first."
+            "No healthy gzTau at 127.0.0.1:{port}. Start Pi with the gzTau extension first."
         ));
     }
     set_active_port(port);
@@ -195,12 +195,12 @@ fn focus_main(app: &AppHandle) {
 /// Windows taskbar identity (grouping / pinning) — matches NSIS product install.
 #[cfg(windows)]
 fn set_app_user_model_id() {
-    // SetCurrentProcessExplicitAppUserModelID("com.gzjggg.tau")
+    // SetCurrentProcessExplicitAppUserModelID("com.gzjggg.gztau")
     type HRESULT = i32;
     extern "system" {
         fn SetCurrentProcessExplicitAppUserModelID(app_id: *const u16) -> HRESULT;
     }
-    let id: Vec<u16> = "com.gzjggg.tau\0".encode_utf16().collect();
+    let id: Vec<u16> = "com.gzjggg.gztau\0".encode_utf16().collect();
     unsafe {
         let _ = SetCurrentProcessExplicitAppUserModelID(id.as_ptr());
     }
@@ -283,5 +283,5 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running Tau desktop");
+        .expect("error while running gzTau desktop");
 }

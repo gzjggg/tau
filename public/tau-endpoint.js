@@ -1,5 +1,5 @@
 /**
- * API / WebSocket base resolution for browser (same-origin) and Tau Desktop (loopback port).
+ * API / WebSocket base resolution for browser (same-origin) and gzTau Desktop (loopback port).
  *
  * Sources (first wins):
  * 1. window.__TAU_ENDPOINT__ = { http, ws }

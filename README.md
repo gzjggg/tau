@@ -1,14 +1,14 @@
-# Tau
+# gzTau
 
 **English** | [简体中文](./README.zh-CN.md)
 
 A web UI that mirrors your [Pi](https://github.com/badlogic/pi-mono) terminal session in the browser **or a desktop window**. No separate agent server — it runs as a Pi extension inside your existing process.
 
-**gzTau** ([gzjggg/gzTau](https://github.com/gzjggg/gzTau)) is the product tree: a Tau-based Pi web UI with command system, session cover, session switching, UI polish, and **Tau Desktop** (Tauri). It started from [deflating/tau](https://github.com/deflating/tau) but is maintained as its own line (desktop packaging and branding are not the upstream PR track).
+**gzTau** ([gzjggg/gzTau](https://github.com/gzjggg/gzTau)) is the product tree: Pi web mirror UI with command system, session cover, session switching, UI polish, and **gzTau Desktop** (Tauri). It started from [deflating/tau](https://github.com/deflating/tau) but is maintained as its own line. In-app chrome still shows the short label **Tau**.
 
-![Tau dark mode](docs/images/dark.png)
+![gzTau dark mode](docs/images/dark.png)
 
-![Tau terracotta theme](docs/images/terracotta.png)
+![gzTau terracotta theme](docs/images/terracotta.png)
 
 ![Settings](docs/images/settings.png)
 
@@ -16,7 +16,7 @@ A web UI that mirrors your [Pi](https://github.com/badlogic/pi-mono) terminal se
 
 ## What it does
 
-Tau connects to your running Pi TUI and gives you a second view in the browser. Same session, same messages, same tools — just a different screen. Type in the terminal or the browser; both stay in sync.
+gzTau connects to your running Pi TUI and gives you a second view in the browser or desktop app. Same session, same messages, same tools — just a different screen. Type in the terminal or the UI; both stay in sync.
 
 - **Live mirroring** — streams messages, tool calls, and thinking blocks in real time
 - **Works on any device** — open it on your phone, tablet, or another monitor
@@ -67,7 +67,7 @@ pi install git:github.com/gzjggg/gzTau
 ## Usage
 
 1. Start Pi normally in your terminal  
-2. Tau opens the **desktop app** if built, otherwise the browser, at `http://127.0.0.1:38471`  
+2. gzTau opens the **desktop app** if built, otherwise the browser, at `http://127.0.0.1:38471`  
 3. That’s it  
 
 | Command / action | Description |
@@ -82,26 +82,27 @@ pi install git:github.com/gzjggg/gzTau
 
 ### Desktop app (optional)
 
-Windows shell lives under [`apps/desktop`](./apps/desktop) (Tauri 2). It **bundles** the same `public/` UI and talks to Tau on loopback.
+Windows shell lives under [`apps/desktop`](./apps/desktop) (Tauri 2). It **bundles** the same `public/` UI and talks to the extension on loopback.
 
 ```bash
 cd apps/desktop
 npm install
-npm run build
-# → src-tauri/target/release/tau-desktop.exe
+npm run package
+# → apps/desktop/bin/tau-desktop.exe
+# → dist/desktop/gzTau_*_x64-setup.exe
 ```
 
-Then start Pi as usual; the extension launches `tau-desktop --port <port>` when `client` is `desktop` (default). See [apps/desktop/README.md](./apps/desktop/README.md).
+Then start Pi as usual; the extension launches Desktop when `client` is `desktop` (default). See [apps/desktop/README.md](./apps/desktop/README.md).
 
 Desktopization is **product-only** (`gzjggg/gzTau`); it is **not** mirrored to `tau-pr` / upstream.
 
-**Installer (D3):** `cd apps/desktop && npm run package` → `dist/desktop/Tau_*_x64-setup.exe` (unsigned). See [docs/desktop-install.md](./docs/desktop-install.md).
+**Installer (D3):** `cd apps/desktop && npm run package` → `dist/desktop/gzTau_*_x64-setup.exe` (unsigned). See [docs/desktop-install.md](./docs/desktop-install.md).
 
 ## Fork highlights
 
 ### Slash commands & Command Center
 
-- Type `/` in the input to search Pi extensions, prompts, skills, and Tau actions
+- Type `/` in the input to search Pi extensions, prompts, skills, and gzTau actions
 - Command button opens **PI COMMANDS** / **TAU ACTIONS** tabs
 - Execution uses Pi’s public `getCommands()` plus a guarded adapter — slash commands are never sent as plain chat
 
@@ -169,12 +170,12 @@ Click a session in the sidebar to switch the live Pi TUI session via `switchSess
 | `TAU_DESKTOP_PATH` | *(search)* | Path to `tau-desktop` executable |
 | `TAU_DESKTOP_FALLBACK` | `browser` | If desktop missing: `browser` or `none` |
 | `TAU_STATIC_DIR` | *(bundled)* | Override static files path |
-| `TAU_DISABLED` | `0` | Set `1` to keep Tau installed but not auto-start |
+| `TAU_DISABLED` | `0` | Set `1` to keep gzTau installed but not auto-start |
 | `TAU_USER` / `TAU_PASS` | *(none)* | HTTP Basic Auth (both required) |
 
 ### Network (personal-tool defaults)
 
-By default Tau listens on **loopback only** (`127.0.0.1`). Same-machine browser use is unchanged.
+By default gzTau listens on **loopback only** (`127.0.0.1`). Same-machine browser use is unchanged.
 
 To use a phone on the same Wi‑Fi or another device on the LAN, **explicitly enable remote**:
 
@@ -207,7 +208,7 @@ File browser and session delete stay limited to the workspace / sessions directo
 }
 ```
 
-- **`client`**: `desktop` (default) tries Tau Desktop, then falls back per `desktopFallback`
+- **`client`**: `desktop` (default) tries gzTau Desktop, then falls back per `desktopFallback`
 - **`remote`**: set `true` (or `{ "enabled": true }`) for LAN/Tailscale/phone access; default is loopback-only
 - **`allowRemoteCommandExecution`**: when auth is off, only local clients may run commands unless this is `true`
 - **Basic Auth**: set `user` + `pass`, then enable “Require login” in Settings (or set `authEnabled`)
@@ -222,12 +223,12 @@ You can still start the server with `/tau-start` in that session.
 
 ## How it works
 
-Tau is a [Pi extension](https://github.com/badlogic/pi-mono#extensions) that starts an HTTP + WebSocket server inside the Pi process. The extension subscribes to Pi events and forwards them to browser clients. Browser commands run against the same agent session.
+gzTau is a [Pi extension](https://github.com/badlogic/pi-mono#extensions) that starts an HTTP + WebSocket server inside the Pi process. The extension subscribes to Pi events and forwards them to clients. Commands from the UI run against the same agent session.
 
 ```
 ┌─────────────┐     ┌──────────────────────────────┐     ┌─────────────┐
 │  Pi TUI     │     │  Pi Process                  │     │  Browser    │
-│  (terminal) │◄───►│                              │◄───►│  (Tau)      │
+│  (terminal) │◄───►│                              │◄───►│  (gzTau)    │
 │             │     │  tau extension               │     │             │
 └─────────────┘     │    ↳ HTTP + WS on :38471     │     └─────────────┘
                     └──────────────────────────────┘

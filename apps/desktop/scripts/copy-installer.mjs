@@ -11,7 +11,7 @@ const desktopRoot = path.resolve(__dirname, "..");
 const confPath = path.join(desktopRoot, "src-tauri", "tauri.conf.json");
 const conf = JSON.parse(fs.readFileSync(confPath, "utf8"));
 const version = conf.version || "0.0.0";
-const product = conf.productName || "Tau";
+const product = conf.productName || "gzTau";
 
 const nsisDir = path.join(
   desktopRoot,
@@ -73,8 +73,8 @@ const manifest = {
   identifier: conf.identifier,
   files,
   installHint:
-    "Current-user NSIS → %LOCALAPPDATA%\\Programs\\Tau\\ (no admin). Unsigned personal build.",
-  note: "Product repo gzjggg/gzTau only — not tau-pr.",
+    "Current-user NSIS → %LOCALAPPDATA%\\Programs\\gzTau\\ (no admin). Unsigned personal build.",
+  note: "Product repo gzjggg/gzTau only — not tau-pr. In-app title remains Tau.",
 };
 fs.writeFileSync(path.join(distDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 console.log("[package] manifest.json written for", product, version);

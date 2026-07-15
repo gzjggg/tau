@@ -221,6 +221,11 @@ function findDesktopExecutable(): string | null {
     path.join(pkgRoot, "apps", "desktop", "src-tauri", "target", "release", "tau-desktop"),
     path.join(pkgRoot, "apps", "desktop", "src-tauri", "target", "debug", "tau-desktop"),
     // NSIS currentUser install (Tauri default: %LOCALAPPDATA%\Programs\<product>)
+    // NSIS product folder (productName gzTau)
+    path.join(localApp, "Programs", "gzTau", "tau-desktop.exe"),
+    path.join(localApp, "Programs", "gzTau", "gzTau.exe"),
+    path.join(localApp, "gzTau", "tau-desktop.exe"),
+    // Legacy install folder name "Tau" (pre-rename)
     path.join(localApp, "Programs", "Tau", "tau-desktop.exe"),
     path.join(localApp, "Programs", "Tau", "Tau.exe"),
     path.join(localApp, "Tau", "tau-desktop.exe"),
@@ -271,7 +276,7 @@ function openTauClient(localUrl: string, port: number, notify?: (msg: string, le
       rememberDesktopPath(exe);
       mlog(`[Mirror] Launched desktop: ${exe} --port ${port}`);
       try {
-        notify?.(`Tau Desktop · :${port}`, "info");
+        notify?.(`gzTau Desktop · :${port}`, "info");
       } catch { /* ignore */ }
       return;
     } catch (e) {
@@ -279,10 +284,10 @@ function openTauClient(localUrl: string, port: number, notify?: (msg: string, le
     }
   } else {
     console.warn(
-      "[Mirror] tau-desktop not found. Build: cd apps/desktop && npm run package  (or install NSIS setup). Falling back."
+      "[Mirror] gzTau desktop not found. Build: cd apps/desktop && npm run package  (or install NSIS setup). Falling back."
     );
     try {
-      notify?.("Tau Desktop not found — opened browser. Run apps/desktop npm run package", "warning");
+      notify?.("gzTau Desktop not found — opened browser. Run apps/desktop npm run package", "warning");
     } catch { /* ignore */ }
   }
 
@@ -621,7 +626,7 @@ export default function (pi: ExtensionAPI) {
       // Notify BEFORE switch — after switch this ctx is invalid
       if (!target) {
         try {
-          ctx.ui.notify("Tau resume hook ready — sidebar can resume same-cwd sessions", "info");
+          ctx.ui.notify("gzTau resume hook ready — sidebar can resume same-cwd sessions", "info");
         } catch { /* ignore */ }
         return;
       }
@@ -928,30 +933,30 @@ export default function (pi: ExtensionAPI) {
   // /tau-stop and /tau-start commands
   // ═══════════════════════════════════════
   pi.registerCommand("taustop", {
-    description: "Stop the Tau mirror server",
+    description: "Stop the gzTau mirror server",
     handler: async (_args, ctx) => {
       armSessionSwitcher(ctx);
       if (!server) {
-        ctx.ui.notify("Tau is not running", "warning");
+        ctx.ui.notify("gzTau is not running", "warning");
         return;
       }
       stopServer();
       ctx.ui.setStatus("mirror", "");
-      ctx.ui.notify("Tau mirror server stopped", "info");
+      ctx.ui.notify("gzTau mirror server stopped", "info");
       mlog("[Mirror] Server stopped via /taustop");
     },
   });
 
   pi.registerCommand("taustart", {
-    description: "Start the Tau mirror server",
+    description: "Start the gzTau mirror server",
     handler: async (_args, ctx) => {
       armSessionSwitcher(ctx);
       if (server) {
-        ctx.ui.notify(`Tau is already running at ${mirrorUrl}`, "warning");
+        ctx.ui.notify(`gzTau is already running at ${mirrorUrl}`, "warning");
         return;
       }
       startServer(ctx);
-      ctx.ui.notify("Tau mirror server starting...", "info");
+      ctx.ui.notify("gzTau mirror server starting...", "info");
     },
   });
 
@@ -959,7 +964,7 @@ export default function (pi: ExtensionAPI) {
   // /qr command — show QR code to connect
   // ═══════════════════════════════════════
   pi.registerCommand("tau", {
-    description: "Open Tau web UI in browser",
+    description: "Open gzTau UI in browser",
     handler: async (_args, ctx) => {
       armSessionSwitcher(ctx);
       if (!mirrorUrl) {
@@ -981,14 +986,14 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("qr", {
-    description: "Show QR code for Tau mirror URL",
+    description: "Show QR code for gzTau mirror URL",
     handler: async (_args, ctx) => {
       if (!mirrorUrl) {
         ctx.ui.notify("Mirror server not running yet", "warning");
         return;
       }
       const qrPageUrl = `${mirrorUrl}/api/qr`;
-      ctx.ui.notify(`Tau: ${mirrorUrl}  •  QR: ${qrPageUrl}`, "info");
+      ctx.ui.notify(`gzTau: ${mirrorUrl}  •  QR: ${qrPageUrl}`, "info");
       openInBrowser(qrPageUrl);
     },
   });
@@ -1838,10 +1843,10 @@ export default function (pi: ExtensionAPI) {
           : "";
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(`<!DOCTYPE html>
-<html><head><meta name="viewport" content="width=device-width"><title>Tau — Connect</title>
+<html><head><meta name="viewport" content="width=device-width"><title>gzTau — Connect</title>
 <style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#131316;color:#fff;font-family:-apple-system,sans-serif}
 img{border-radius:12px}a{color:#b87a5c;font-size:18px;margin-top:16px}p{color:rgba(255,255,255,0.5);font-size:13px;margin-top:8px}</style>
-</head><body><p style="color:rgba(255,255,255,0.3);font-size:11px">LAN</p><img src="${dataUrls[0]}" width="256" height="256" alt="QR Code"><a href="${mirrorUrl}">${mirrorUrl}</a>${tsSection}<p style="margin-top:16px">Scan to open Tau on your phone</p></body></html>`);
+</head><body><p style="color:rgba(255,255,255,0.3);font-size:11px">LAN</p><img src="${dataUrls[0]}" width="256" height="256" alt="QR Code"><a href="${mirrorUrl}">${mirrorUrl}</a>${tsSection}<p style="margin-top:16px">Scan to open gzTau on your phone</p></body></html>`);
       }).catch((e: any) => {
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: e.message }));
@@ -2949,7 +2954,7 @@ img{border-radius:12px}a{color:#b87a5c;font-size:18px;margin-top:16px}p{color:rg
 
       // One short notify — not a wall of text
       try {
-        ctx.ui.notify(`Tau ${mirrorUrl}`, "info");
+        ctx.ui.notify(`gzTau ${mirrorUrl}`, "info");
       } catch { /* ignore */ }
 
       // Auto-open desktop (or browser fallback) once — after listen is stable
@@ -3038,6 +3043,6 @@ img{border-radius:12px}a{color:#b87a5c;font-size:18px;margin-top:16px}p{color:rg
 
   // Quiet startup: one line only (set TAU_DEBUG=1 for verbose)
   if (factoryInvokeCount === 1) {
-    console.log(`[Mirror] Tau ${TAU_BUILD_ID} · :${PORT}${TAU_DEBUG ? " · debug" : ""}`);
+    console.log(`[Mirror] gzTau ${TAU_BUILD_ID} · :${PORT}${TAU_DEBUG ? " · debug" : ""}`);
   }
 }

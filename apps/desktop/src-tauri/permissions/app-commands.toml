@@ -1,6 +1,6 @@
 [[permission]]
 identifier = "allow-app-commands"
-description = "Allow Tau desktop shell commands (instances, chrome, window helpers)"
+description = "Allow gzTau desktop shell commands (instances, chrome, window helpers)"
 commands.allow = [
   "list_tau_instances",
   "get_active_port",

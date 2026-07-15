@@ -1,5 +1,5 @@
 /**
- * Desktop chrome — custom titlebar (Tau Desktop / Tauri).
+ * Desktop chrome — custom titlebar (gzTau Desktop / Tauri). In-app title label: Tau.
  * - Window controls: official window API
  * - Taskbar icon: ONLY via Rust OS SystemUsesLightTheme (never WebView matchMedia)
  * - In-app marks (titlebar/sidebar): follow app UI theme

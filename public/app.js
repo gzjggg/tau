@@ -31,7 +31,7 @@ import {
 // Browser same-origin OR desktop loopback API base
 installApiFetchRewrite();
 
-// Tau Desktop: custom titlebar + theme-aware window icon
+// gzTau Desktop: custom titlebar + theme-aware window icon (in-app title: Tau)
 installDesktopChrome();
 
 // Initialize components (WS URL respects __TAU_ENDPOINT__ / ?tauPort=)

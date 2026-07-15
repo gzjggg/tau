@@ -1,8 +1,8 @@
 {
   "name": "tau-desktop",
   "private": true,
-  "version": "0.3.0",
-  "description": "Tau desktop shell — bundled public UI + loopback Tau API (product repo only)",
+  "version": "0.3.1",
+  "description": "gzTau desktop shell — bundled public UI + loopback API (product repo only)",
   "type": "module",
   "scripts": {
     "tauri": "tauri",

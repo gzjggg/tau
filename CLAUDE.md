@@ -2,7 +2,7 @@
 
 ## Package identity
 
-Repo: **tau** (fork) | npm package: **tau-mirror**  
+Repo / product: **gzTau** | npm package name (Pi): **tau-mirror**  
 GitHub: https://github.com/gzjggg/gzTau  
 Upstream: https://github.com/deflating/tau
 

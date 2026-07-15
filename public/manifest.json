@@ -1,7 +1,7 @@
 {
-  "name": "Tau",
+  "name": "gzTau",
   "short_name": "Tau",
-  "description": "Web UI for pi coding agent",
+  "description": "gzTau — Pi session mirror UI",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f3ef",

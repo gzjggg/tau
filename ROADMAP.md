@@ -1,4 +1,4 @@
-# Tau Roadmap
+# gzTau Roadmap
 
 Ideas and planned features. Nothing here is committed — just captured so it doesn't get lost.
 

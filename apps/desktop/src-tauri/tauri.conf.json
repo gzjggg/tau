@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Tau",
-  "version": "0.3.0",
-  "identifier": "com.gzjggg.tau",
+  "productName": "gzTau",
+  "version": "0.3.1",
+  "identifier": "com.gzjggg.gztau",
   "build": {
     "frontendDist": "../../../public"
   },
@@ -31,10 +31,10 @@
     "active": true,
     "targets": ["nsis"],
     "publisher": "gzjggg",
-    "copyright": "Copyright © 2026 gzjggg / Tau contributors",
+    "copyright": "Copyright © 2026 gzjggg / gzTau contributors",
     "category": "DeveloperTool",
-    "shortDescription": "Desktop shell for Tau — Pi session mirror UI",
-    "longDescription": "Tau Desktop is a native Windows window for the Tau web UI. It bundles the same public UI and connects to your Pi/Tau extension on 127.0.0.1. Closing the window does not exit Pi.",
+    "shortDescription": "Desktop shell for gzTau — Pi session mirror UI",
+    "longDescription": "gzTau Desktop is a native Windows window for the gzTau web UI. It bundles the same public UI and connects to your Pi/gzTau extension on 127.0.0.1. Closing the window does not exit Pi. In-app chrome title remains Tau.",
     "homepage": "https://github.com/gzjggg/gzTau",
     "resources": [
       "icons/icon-light.png",
@@ -59,7 +59,7 @@
         "installerIcon": "icons/icon.ico",
         "languages": ["English", "SimpChinese"],
         "displayLanguageSelector": false,
-        "startMenuFolder": "Tau"
+        "startMenuFolder": "gzTau"
       }
     }
   }

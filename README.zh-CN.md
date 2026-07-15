@@ -1,14 +1,14 @@
-# Tau
+# gzTau
 
 [English](./README.md) | **简体中文**
 
 在浏览器或**桌面窗口**中镜像 [Pi](https://github.com/badlogic/pi-mono) 终端会话的 Web UI。无需独立 Agent 服务——作为 Pi 扩展运行在现有进程内。
 
-**gzTau**（[gzjggg/gzTau](https://github.com/gzjggg/gzTau)）是产品主仓：基于 Tau 的 Pi Web UI，含命令系统、会话封面、会话切换、UI 打磨与 **Tau Desktop**（Tauri）。源自 [deflating/tau](https://github.com/deflating/tau)，但按独立产品线维护（桌面化与品牌不走上游 PR 轨道）。
+**gzTau**（[gzjggg/gzTau](https://github.com/gzjggg/gzTau)）是产品主仓：Pi Web 镜像 UI，含命令系统、会话封面、会话切换、UI 打磨与 **gzTau Desktop**（Tauri）。源自 [deflating/tau](https://github.com/deflating/tau)，按独立产品线维护。应用内标题栏仍显示简称 **Tau**。
 
-![Tau 深色模式](docs/images/dark.png)
+![gzTau 深色模式](docs/images/dark.png)
 
-![Tau 陶土主题](docs/images/terracotta.png)
+![gzTau 陶土主题](docs/images/terracotta.png)
 
 ![设置](docs/images/settings.png)
 
@@ -16,7 +16,7 @@
 
 ## 能做什么
 
-Tau 接入正在运行的 Pi TUI，在浏览器中提供同一会话的第二视图。消息、工具调用一致；在终端或浏览器输入都会同步。
+gzTau 接入正在运行的 Pi TUI，在浏览器或桌面中提供同一会话的第二视图。消息、工具调用一致；在终端或 UI 输入都会同步。
 
 - **实时镜像** — 消息、工具调用、思考块流式展示
 - **多端可用** — 手机、平板或另一块显示器
@@ -67,7 +67,7 @@ pi install git:github.com/gzjggg/gzTau
 ## 使用
 
 1. 在终端正常启动 Pi  
-2. 若已构建桌面端则打开 **Tau Desktop**，否则打开浏览器：`http://127.0.0.1:38471`  
+2. 若已构建桌面端则打开 **gzTau Desktop**，否则打开浏览器：`http://127.0.0.1:38471`  
 3. 完成  
 
 | 命令 / 操作 | 说明 |
@@ -82,26 +82,27 @@ pi install git:github.com/gzjggg/gzTau
 
 ### 桌面应用（可选）
 
-Windows 桌面壳在 [`apps/desktop`](./apps/desktop)（Tauri 2）。**内置打包**同一套 `public/` UI，通过本机 loopback 连接 Tau。
+Windows 桌面壳在 [`apps/desktop`](./apps/desktop)（Tauri 2）。**内置打包**同一套 `public/` UI，通过本机 loopback 连接扩展服务。
 
 ```bash
 cd apps/desktop
 npm install
-npm run build
-# → src-tauri/target/release/tau-desktop.exe
+npm run package
+# → apps/desktop/bin/tau-desktop.exe
+# → dist/desktop/gzTau_*_x64-setup.exe
 ```
 
-之后正常启动 Pi；扩展在 `client` 为 `desktop`（默认）时会执行 `tau-desktop --port <port>`。详见 [apps/desktop/README.md](./apps/desktop/README.md)。
+之后正常启动 Pi；`client` 为 `desktop`（默认）时自动拉起桌面端。详见 [apps/desktop/README.md](./apps/desktop/README.md)。
 
 桌面化仅维护在产品仓 `gzjggg/gzTau`，**不**同步到 `tau-pr` / 上游。
 
-**安装包（D3）：** `cd apps/desktop && npm run package` → `dist/desktop/Tau_*_x64-setup.exe`（未签名，个人使用）。详见 [docs/desktop-install.md](./docs/desktop-install.md)。
+**安装包（D3）：** `cd apps/desktop && npm run package` → `dist/desktop/gzTau_*_x64-setup.exe`（未签名）。详见 [docs/desktop-install.md](./docs/desktop-install.md)。
 
 ## 本分支亮点
 
 ### 斜杠命令与命令中心
 
-- 输入框输入 `/` 可搜索 Pi 扩展、提示词、技能与 Tau 动作  
+- 输入框输入 `/` 可搜索 Pi 扩展、提示词、技能与 gzTau 动作  
 - 命令按钮打开 **PI COMMANDS** / **TAU ACTIONS**  
 - 通过 Pi 的 `getCommands()` 与受保护适配器执行——斜杠命令不会当普通聊天发送  
 
@@ -222,12 +223,12 @@ TAU_DISABLED=1 pi
 
 ## 工作原理
 
-Tau 是 [Pi 扩展](https://github.com/badlogic/pi-mono#extensions)，在 Pi 进程内启动 HTTP + WebSocket 服务，订阅事件并转发给浏览器；浏览器命令在同一 Agent 会话中执行。
+gzTau 是 [Pi 扩展](https://github.com/badlogic/pi-mono#extensions)，在 Pi 进程内启动 HTTP + WebSocket 服务，订阅事件并转发给客户端；UI 命令在同一 Agent 会话中执行。
 
 ```
 ┌─────────────┐     ┌──────────────────────────────┐     ┌─────────────┐
 │  Pi TUI     │     │  Pi 进程                     │     │  浏览器     │
-│  (终端)     │◄───►│                              │◄───►│  (Tau)      │
+│  (终端)     │◄───►│                              │◄───►│  (gzTau)    │
 │             │     │  tau 扩展                    │     │             │
 └─────────────┘     │    ↳ HTTP + WS :38471        │     └─────────────┘
                     └──────────────────────────────┘

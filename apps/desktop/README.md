@@ -1,8 +1,10 @@
-# Tau Desktop
+# gzTau Desktop
 
-Native window for the Tau web UI (Tauri 2 + WebView2 on Windows).
+Native window for the gzTau web UI (Tauri 2 + WebView2 on Windows).
 
-**Product repo only** ([gzjggg/gzTau](https://github.com/gzjggg/gzTau)) — desktop work is **not** pushed to `tau-pr` / upstream.
+**Product repo only** ([gzjggg/gzTau](https://github.com/gzjggg/gzTau)) — not synced to `tau-pr` / upstream.
+
+In-app window title / titlebar label remains **Tau**; product name, installer, and Start Menu use **gzTau**.
 
 ## Phases
 
@@ -10,21 +12,21 @@ Native window for the Tau web UI (Tauri 2 + WebView2 on Windows).
 |-------|--------|
 | D1 Independent window + launcher | Done |
 | D2 Bundled `public/` + loopback API | Done |
-| **D3 NSIS installer + docs/CI** | **Done** (unsigned personal release) |
+| D3 NSIS installer + docs/CI | Done (unsigned personal release) |
 
 ## Install (D3)
 
 1. Build: `cd apps/desktop && npm run package`
-2. Run `dist/desktop/Tau_*_x64-setup.exe` (or under `src-tauri/target/release/bundle/nsis/`)
-3. Installs for **current user** (no admin) under `%LOCALAPPDATA%\Programs\Tau\`
-4. Start Menu folder: **Tau**
+2. Run `dist/desktop/gzTau_*_x64-setup.exe`
+3. Installs for **current user** under `%LOCALAPPDATA%\Programs\gzTau\`
+4. Start Menu folder: **gzTau**
 5. Start Pi with this product package; default `client: "desktop"` auto-opens the app
 
 Full notes: [docs/desktop-install.md](../../docs/desktop-install.md)
 
 ### Uninstall
 
-Windows Settings → Apps → **Tau**, or NSIS uninstaller.
+Windows Settings → Apps → **gzTau**, or NSIS uninstaller.
 
 ### Signing
 
@@ -34,8 +36,8 @@ Installers are **unsigned**. SmartScreen may warn until you code-sign.
 
 | Layer | Role |
 |-------|------|
-| Bundled `public/` | Same UI as browser |
-| Pi + Tau extension | HTTP/WS on `127.0.0.1:<port>` |
+| Bundled `public/` | Same UI as browser (in-app brand **Tau**) |
+| Pi + gzTau extension | HTTP/WS on `127.0.0.1:<port>` |
 | Desktop shell | Instance discovery, titlebar, taskbar icon, single-instance |
 
 Closing the window does **not** exit Pi.
@@ -51,10 +53,8 @@ npm run package
 | Output | Path |
 |--------|------|
 | Binary | `src-tauri/target/release/tau-desktop.exe` |
-| NSIS | `src-tauri/target/release/bundle/nsis/Tau_*_x64-setup.exe` |
-| Copy + manifest | `dist/desktop/` |
-
-Requirements: Windows x64, Rust, MSVC, Node 18+.
+| Stable copy | `apps/desktop/bin/tau-desktop.exe` |
+| NSIS | `dist/desktop/gzTau_*_x64-setup.exe` |
 
 ## Configure Pi
 
@@ -63,22 +63,13 @@ Requirements: Windows x64, Rust, MSVC, Node 18+.
   "tau": {
     "client": "desktop",
     "desktopFallback": "browser",
-    "desktopPath": "%LOCALAPPDATA%/Programs/Tau/tau-desktop.exe"
+    "desktopPath": "%LOCALAPPDATA%/Programs/gzTau/tau-desktop.exe"
   }
 }
 ```
 
-(`desktopPath` optional if the default install location is used.)
-
-- Browser only: `TAU_CLIENT=browser`
-- No auto-open: `TAU_AUTO_OPEN=0`
+(`desktopPath` optional if the default install / bin path is found.)
 
 ## CI
 
-`.github/workflows/desktop-windows.yml` — tag `desktop-v*` or manual dispatch builds the NSIS artifact.
-
-## Chrome notes
-
-- Frameless window + themed titlebar
-- Taskbar glyph follows **Windows system** light/dark
-- Maximize ↔ dual rounded restore icon
+`.github/workflows/desktop-windows.yml` — tag `desktop-v*` or manual dispatch.

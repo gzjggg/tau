@@ -287,7 +287,7 @@ const TUI_BUILTINS: CommandDescriptor[] = [
     id: "tui:builtin:settings",
     name: "settings",
     invocation: "/settings",
-    description: "Pi TUI settings (terminal). Use the gear icon for Tau Web settings.",
+    description: "Pi TUI settings (terminal). Use the gear icon for UI settings.",
     source: "tui",
     location: "builtin",
     capability: "execute", // try Pi first via session.prompt; fall back to terminal-only message
@@ -298,7 +298,7 @@ const TUI_BUILTINS: CommandDescriptor[] = [
     id: "tui:builtin:model",
     name: "model",
     invocation: "/model",
-    description: "Pi TUI model picker. Use the header model button for Tau Web.",
+    description: "Pi TUI model picker. Use the header model button in the web/desktop UI.",
     source: "tui",
     location: "builtin",
     capability: "execute",
@@ -309,7 +309,7 @@ const TUI_BUILTINS: CommandDescriptor[] = [
     id: "tui:builtin:thinking",
     name: "thinking",
     invocation: "/thinking",
-    description: "Pi TUI thinking level. Use the header thinking chip for Tau Web.",
+    description: "Pi TUI thinking level. Use the header thinking chip in the web/desktop UI.",
     source: "tui",
     location: "builtin",
     capability: "execute",
@@ -320,7 +320,7 @@ const TUI_BUILTINS: CommandDescriptor[] = [
     id: "tui:builtin:compact",
     name: "compact",
     invocation: "/compact",
-    description: "Pi compact command. Use Command Center → TAU ACTIONS for Tau compact.",
+    description: "Pi compact command. Use Command Center → TAU ACTIONS for UI compact.",
     source: "tui",
     location: "builtin",
     capability: "execute",
@@ -707,7 +707,7 @@ export async function resumeSessionLikeTui(
       return cmdCtx.switchSession(p, o);
     }
     throw new Error(
-      "Resume hook not ready. In the Pi terminal run: /tau-switch   (no args) once, then retry from Tau."
+      "Resume hook not ready. In the Pi terminal run: /tau-switch   (no args) once, then retry from the UI."
     );
   };
 
