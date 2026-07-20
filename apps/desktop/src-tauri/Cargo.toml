@@ -1,6 +1,6 @@
 [package]
 name = "tau-desktop"
-version = "0.3.1"
+version = "0.3.2"
 description = "gzTau desktop shell for Pi mirror UI (Windows installer)"
 authors = ["gzjggg"]
 edition = "2021"

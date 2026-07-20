@@ -49,6 +49,22 @@ function isLoopbackHost(host: string): boolean {
   return h === "127.0.0.1" || h === "::1" || h === "localhost";
 }
 
+// Mirrors @earendil-works/pi-ai getSupportedThinkingLevels(model).
+// Returns the subset of thinking levels the current model actually supports.
+// Models without `reasoning` only support "off"; xhigh/max require an explicit
+// (non-undefined) entry in thinkingLevelMap; other levels are supported unless
+// explicitly null in thinkingLevelMap.
+const ALL_THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+function getSupportedThinkingLevels(model: any): string[] {
+  if (!model || !model.reasoning) return ["off"];
+  return ALL_THINKING_LEVELS.filter((level) => {
+    const mapped = model.thinkingLevelMap?.[level];
+    if (mapped === null) return false;
+    if (level === "xhigh" || level === "max") return mapped !== undefined;
+    return true;
+  });
+}
+
 // Load tau settings from ~/.pi/agent/settings.json (falls back to env vars)
 /** How to open the UI after mirror server listens. */
 export type TauClientKind = "desktop" | "browser" | "none";
@@ -1174,6 +1190,7 @@ export default function (pi: ExtensionAPI) {
       entries,
       model,
       thinkingLevel,
+      supportedThinkingLevels: getSupportedThinkingLevels(model),
       sessionName,
       sessionFile,
       cwd: sessionCover?.cwd || (ctx as any)?.cwd || process.cwd(),
@@ -1504,6 +1521,7 @@ export default function (pi: ExtensionAPI) {
             const state = {
               model,
               thinkingLevel: piApi.getThinkingLevel(),
+              supportedThinkingLevels: getSupportedThinkingLevels(model),
               isStreaming,
               sessionFile: ctx.sessionManager.getSessionFile(),
               sessionName: piApi.getSessionName(),
@@ -1556,7 +1574,11 @@ export default function (pi: ExtensionAPI) {
               sendTo(ws, error("set_model", "No API key for this model"));
               break;
             }
-            sendTo(ws, success("set_model", model));
+            sendTo(ws, success("set_model", {
+              model,
+              thinkingLevel: piApi.getThinkingLevel(),
+              supportedThinkingLevels: getSupportedThinkingLevels(model),
+            }));
           } catch (e: any) {
             sendTo(ws, error("set_model", e?.message || String(e)));
           }
@@ -1583,6 +1605,7 @@ export default function (pi: ExtensionAPI) {
             sendTo(ws, success("cycle_model", {
               model: nextModel,
               thinkingLevel: piApi.getThinkingLevel(),
+              supportedThinkingLevels: getSupportedThinkingLevels(nextModel),
             }));
           } catch (e: any) {
             sendTo(ws, error("cycle_model", e?.message || String(e)));
@@ -1593,7 +1616,7 @@ export default function (pi: ExtensionAPI) {
         // ─── Thinking ───
         case "cycle_thinking_level": {
           try {
-            const levels = ["off", "minimal", "low", "medium", "high"];
+            const levels = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
             const current = piApi.getThinkingLevel();
             const idx = levels.indexOf(current as string);
             const next = levels[(idx + 1) % levels.length];

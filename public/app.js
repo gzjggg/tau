@@ -339,8 +339,6 @@ function handleRPCEvent(event) {
       if (event.level) {
         currentThinkingLevel = event.level;
         updateThinkingBtn();
-        const btn = document.getElementById('btn-thinking-level');
-        if (btn) btn.textContent = event.level;
       }
       break;
   }
@@ -1100,9 +1098,91 @@ const modelDropdownBtn = document.getElementById('model-dropdown-btn');
 const modelDropdownLabel = document.getElementById('model-dropdown-label');
 const modelDropdownMenu = document.getElementById('model-dropdown-menu');
 const thinkingBtn = document.getElementById('thinking-btn');
+const thinkingDropdown = document.getElementById('thinking-dropdown');
+const thinkingDropdownMenu = document.getElementById('thinking-dropdown-menu');
+const thinkingDropdownLabel = document.getElementById('thinking-dropdown-label');
+const settingsThinkingDropdown = document.getElementById('settings-thinking-dropdown');
+const settingsThinkingMenu = document.getElementById('settings-thinking-menu');
+const settingsThinkingLabel = document.getElementById('settings-thinking-label');
+
+// Thinking levels — matches pi's VALID_THINKING_LEVELS
+// (off / minimal / low / medium / high / xhigh / max)
+const THINKING_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
+// Subset supported by the current model — received from pi backend.
+// Falls back to THINKING_LEVELS until the first mirror_sync / get_state arrives.
+let currentSupportedThinkingLevels = THINKING_LEVELS.slice();
+
 function updateThinkingBtn() {
-  thinkingBtn.textContent = currentThinkingLevel;
-  thinkingBtn.classList.toggle('off', currentThinkingLevel === 'off');
+  const lvl = currentThinkingLevel;
+  if (thinkingDropdownLabel) thinkingDropdownLabel.textContent = lvl;
+  if (settingsThinkingLabel) settingsThinkingLabel.textContent = lvl;
+  thinkingBtn.classList.toggle('off', lvl === 'off');
+  const settingsBtn = document.getElementById('btn-thinking-level');
+  if (settingsBtn) settingsBtn.classList.toggle('off', lvl === 'off');
+  updateThinkingMenuActive(thinkingDropdownMenu);
+  updateThinkingMenuActive(settingsThinkingMenu);
+}
+
+function updateThinkingMenuActive(menuEl) {
+  if (!menuEl) return;
+  menuEl.querySelectorAll('.thinking-dropdown-item').forEach((item) => {
+    item.classList.toggle('active', item.dataset.level === currentThinkingLevel);
+  });
+}
+
+function buildThinkingMenu(menuEl) {
+  if (!menuEl) return;
+  menuEl.innerHTML = '';
+  const levels = currentSupportedThinkingLevels && currentSupportedThinkingLevels.length
+    ? currentSupportedThinkingLevels
+    : THINKING_LEVELS;
+  for (const level of levels) {
+    const item = document.createElement('div');
+    item.className = 'thinking-dropdown-item';
+    item.dataset.level = level;
+    item.textContent = level;
+    if (level === currentThinkingLevel) item.classList.add('active');
+    item.addEventListener('click', () => selectThinkingLevel(level));
+    menuEl.appendChild(item);
+  }
+}
+
+async function selectThinkingLevel(level) {
+  closeThinkingDropdowns();
+  if (level === currentThinkingLevel) return;
+  const data = await rpcCommand({ type: 'set_thinking_level', level }, 'Setting thinking...');
+  if (data?.success && data.data?.level) {
+    currentThinkingLevel = data.data.level;
+    updateThinkingBtn();
+  } else if (data && data.success === false) {
+    const err = data.error || 'Failed to change thinking level';
+    statusText.textContent = 'Thinking failed';
+    messageRenderer.renderSystemMessage(
+      /stale/i.test(err)
+        ? 'Could not change thinking level (session context outdated). Try again or restart Pi.'
+        : `Could not change thinking level: ${err}`
+    );
+    setTimeout(() => { statusText.textContent = 'Connected'; }, 3000);
+  }
+}
+
+function openThinkingDropdown(dropdownEl, menuEl) {
+  if (!dropdownEl || !menuEl) return;
+  closeThinkingDropdowns();
+  buildThinkingMenu(menuEl);
+  menuEl.classList.remove('hidden');
+  dropdownEl.classList.add('open');
+}
+
+function closeThinkingDropdown(dropdownEl, menuEl) {
+  if (!dropdownEl || !menuEl) return;
+  menuEl.classList.add('hidden');
+  dropdownEl.classList.remove('open');
+}
+
+function closeThinkingDropdowns() {
+  closeThinkingDropdown(thinkingDropdown, thinkingDropdownMenu);
+  closeThinkingDropdown(settingsThinkingDropdown, settingsThinkingMenu);
 }
 let currentModelId = '';
 /** Provider of the active model — required when the same id exists under multiple providers */
@@ -1157,6 +1237,11 @@ async function fetchModelInfo() {
     }
     if (stateData.success && stateData.data?.thinkingLevel) {
       currentThinkingLevel = stateData.data.thinkingLevel;
+    }
+    if (stateData.success && Array.isArray(stateData.data?.supportedThinkingLevels) && stateData.data.supportedThinkingLevels.length) {
+      currentSupportedThinkingLevels = stateData.data.supportedThinkingLevels;
+    }
+    if (stateData.success && (stateData.data?.thinkingLevel || Array.isArray(stateData.data?.supportedThinkingLevels))) {
       updateThinkingBtn();
     }
   } catch (e) {
@@ -1241,6 +1326,16 @@ function openModelDropdown() {
             contextWindowSize = m.contextWindow;
             updateTokenUsage();
           }
+          // Sync thinking level + supported levels for the new model
+          // (pi may clamp the level if the new model doesn't support it)
+          const d = res?.data;
+          if (d?.thinkingLevel) {
+            currentThinkingLevel = d.thinkingLevel;
+          }
+          if (Array.isArray(d?.supportedThinkingLevels) && d.supportedThinkingLevels.length) {
+            currentSupportedThinkingLevels = d.supportedThinkingLevels;
+          }
+          updateThinkingBtn();
         }
       });
       itemsContainer.appendChild(el);
@@ -1275,23 +1370,21 @@ document.addEventListener('click', (e) => {
   if (!modelDropdown.contains(e.target)) {
     closeModelDropdown();
   }
+  if (thinkingDropdown && !thinkingDropdown.contains(e.target)) {
+    closeThinkingDropdown(thinkingDropdown, thinkingDropdownMenu);
+  }
+  if (settingsThinkingDropdown && !settingsThinkingDropdown.contains(e.target)) {
+    closeThinkingDropdown(settingsThinkingDropdown, settingsThinkingMenu);
+  }
 });
 
-// Thinking level button — cycles through levels
-thinkingBtn.addEventListener('click', async () => {
-  const data = await rpcCommand({ type: 'cycle_thinking_level' }, 'Cycling thinking...');
-  if (data?.success && data.data?.level) {
-    currentThinkingLevel = data.data.level;
-    updateThinkingBtn();
-  } else if (data && data.success === false) {
-    const err = data.error || 'Failed to change thinking level';
-    statusText.textContent = 'Thinking failed';
-    messageRenderer.renderSystemMessage(
-      /stale/i.test(err)
-        ? 'Could not change thinking level (session context outdated). Try again or restart Pi.'
-        : `Could not change thinking level: ${err}`
-    );
-    setTimeout(() => { statusText.textContent = 'Connected'; }, 3000);
+// Thinking level dropdown (header) — toggle selector
+thinkingBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (thinkingDropdown.classList.contains('open')) {
+    closeThinkingDropdown(thinkingDropdown, thinkingDropdownMenu);
+  } else {
+    openThinkingDropdown(thinkingDropdown, thinkingDropdownMenu);
   }
 });
 
@@ -1850,6 +1943,11 @@ function handleMirrorSync(data) {
   // Update thinking level
   if (data.thinkingLevel) {
     currentThinkingLevel = data.thinkingLevel;
+  }
+  if (Array.isArray(data.supportedThinkingLevels) && data.supportedThinkingLevels.length) {
+    currentSupportedThinkingLevels = data.supportedThinkingLevels;
+  }
+  if (data.thinkingLevel || Array.isArray(data.supportedThinkingLevels)) {
     updateThinkingBtn();
   }
 
@@ -2245,8 +2343,10 @@ async function openSettings() {
       // Auto-compaction toggle
       toggleAutoCompact.className = `settings-toggle${s.autoCompactionEnabled ? ' on' : ''}`;
       // Thinking level
-      btnThinkingLevel.textContent = s.thinkingLevel || 'off';
       currentThinkingLevel = s.thinkingLevel || 'off';
+      if (Array.isArray(s.supportedThinkingLevels) && s.supportedThinkingLevels.length) {
+        currentSupportedThinkingLevels = s.supportedThinkingLevels;
+      }
       updateThinkingBtn();
       // Session name
       inputSessionName.value = s.sessionName || '';
@@ -2285,17 +2385,13 @@ toggleAutoCompact.addEventListener('click', async () => {
   await rpcCommand({ type: 'set_auto_compaction', enabled: !isOn });
 });
 
-// Thinking level cycle (settings panel button)
-btnThinkingLevel.addEventListener('click', async () => {
-  const data = await rpcCommand({ type: 'cycle_thinking_level' }, 'Cycling thinking...');
-  if (data?.success && data.data?.level) {
-    btnThinkingLevel.textContent = data.data.level;
-    currentThinkingLevel = data.data.level;
-    updateThinkingBtn();
-  } else if (data && data.success === false) {
-    messageRenderer.renderSystemMessage(
-      `Could not change thinking level: ${data.error || 'unknown error'}`
-    );
+// Thinking level dropdown (settings panel) — toggle selector
+btnThinkingLevel.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (settingsThinkingDropdown.classList.contains('open')) {
+    closeThinkingDropdown(settingsThinkingDropdown, settingsThinkingMenu);
+  } else {
+    openThinkingDropdown(settingsThinkingDropdown, settingsThinkingMenu);
   }
 });
 

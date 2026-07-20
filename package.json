@@ -1,6 +1,6 @@
 {
   "name": "tau-mirror",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "description": "gzTau — Pi session mirror UI (browser or desktop shell; command system + session cover)",
   "keywords": [
     "pi",

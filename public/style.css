@@ -1526,6 +1526,74 @@ html.tau-desktop[data-desktop-chrome="light"] .brand-mark-icon {
   border-color: var(--border-hover);
 }
 
+/* Thinking dropdown — selector for thinking levels (header + settings) */
+.thinking-dropdown {
+  position: relative;
+}
+
+.thinking-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.thinking-dropdown-chevron {
+  opacity: 0.5;
+  flex-shrink: 0;
+  transition: transform var(--duration) var(--ease);
+}
+
+.thinking-dropdown.open .thinking-dropdown-chevron {
+  transform: rotate(180deg);
+}
+
+.thinking-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 140px;
+  background: var(--bg-solid);
+  border: 1px solid var(--border-hover);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1001;
+  animation: dropdownIn 0.15s var(--ease);
+}
+
+.thinking-dropdown-menu.hidden {
+  display: none;
+}
+
+.thinking-dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--duration) var(--ease);
+  white-space: nowrap;
+}
+
+.thinking-dropdown-item:hover {
+  background: var(--bg-glass-hover);
+}
+
+.thinking-dropdown-item.active {
+  background: var(--accent-subtle);
+  color: var(--accent-text);
+}
+
+/* Inline variant (settings panel) — menu aligns to the right edge of the button */
+.thinking-dropdown-inline .thinking-dropdown-menu {
+  left: auto;
+  right: 0;
+  min-width: 120px;
+}
+
 /* Status */
 .status {
   display: flex;
